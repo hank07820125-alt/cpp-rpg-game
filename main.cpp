@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -25,9 +26,8 @@ public:
 
     void showInfo()
     {
-        cout << "Skill: " << name << endl;
-        cout << "Damage: " << damage << endl;
-        cout << "MP Cost: " << mpCost << endl;
+        cout << name << " Damage: " << damage
+             << " MP Cost: " << mpCost << endl;
     }
 
     int getDamage()
@@ -38,6 +38,11 @@ public:
     int getMpCost()
     {
         return mpCost;
+    }
+
+    string getName()
+    {
+        return name;
     }
 };
 
@@ -73,15 +78,19 @@ public:
 
     void showInfo()
     {
-        cout << "Item: " << name << endl;
-        cout << "Type: " << type << endl;
-        cout << "Effect: " << effectValue << endl;
-        cout << "Quantity: " << quantity << endl;
+        cout << name << " Type: " << type
+             << " Effect: " << effectValue
+             << " Quantity: " << quantity << endl;
     }
 
     bool isAvailable()
     {
         return quantity > 0;
+    }
+
+    string getType()
+    {
+        return type;
     }
 
     int getEffectValue()
@@ -90,8 +99,6 @@ public:
     }
 };
 
-class Monster;
-
 class Player
 {
 private:
@@ -99,16 +106,18 @@ private:
     int hp;
     int mp;
     int attackPower;
-    Item potion;
+    vector<Item> items;
 
 public:
     Player(string n)
-        : potion("Potion", "Heal", 30, 2)
     {
         name = n;
         hp = 100;
-        mp = 30;
+        mp = 40;
         attackPower = 15;
+
+        items.push_back(Item("Potion", "HP", 30, 2));
+        items.push_back(Item("Mana Potion", "MP", 20, 1));
     }
 
     int attack()
@@ -129,21 +138,54 @@ public:
 
     void useItem()
     {
-        if(potion.isAvailable())
+        cout << "\nItems:" << endl;
+
+        for(int i = 0; i < items.size(); i++)
         {
-            potion.use();
-            hp += potion.getEffectValue();
+            cout << i + 1 << ". ";
+            items[i].showInfo();
+        }
+
+        cout << "Choose item: ";
+
+        int choice;
+        cin >> choice;
+
+        if(choice < 1 || choice > items.size())
+        {
+            cout << "Invalid item." << endl;
+            return;
+        }
+
+        if(items[choice - 1].isAvailable() == false)
+        {
+            cout << "This item is not available." << endl;
+            return;
+        }
+
+        if(items[choice - 1].getType() == "HP")
+        {
+            hp += items[choice - 1].getEffectValue();
 
             if(hp > 100)
             {
                 hp = 100;
             }
 
+            items[choice - 1].use();
             cout << "HP recovered." << endl;
         }
-        else
+        else if(items[choice - 1].getType() == "MP")
         {
-            cout << "Potion is empty." << endl;
+            mp += items[choice - 1].getEffectValue();
+
+            if(mp > 40)
+            {
+                mp = 40;
+            }
+
+            items[choice - 1].use();
+            cout << "MP recovered." << endl;
         }
     }
 
@@ -220,12 +262,18 @@ public:
     void showInfo()
     {
         cout << "Monster: " << name
-             << " HP: " << hp << endl;
+             << " HP: " << hp
+             << " Attack: " << attackPower << endl;
     }
 
     int getRewardGold()
     {
         return rewardGold;
+    }
+
+    string getName()
+    {
+        return name;
     }
 };
 
@@ -239,70 +287,111 @@ int main()
     cin >> playerName;
 
     Player player(playerName);
-    Monster monster("Slime", 80, 10, 20);
+
     Skill fireball("Fireball", 25, 10);
+    Skill heavyStrike("Heavy Strike", 35, 15);
 
-    cout << "\nA Slime appears!" << endl;
+    Monster slime("Slime", 70, 10, 20);
+    Monster goblin("Goblin", 90, 15, 30);
 
-    while(player.isAlive() && monster.isAlive())
+    vector<Monster> monsters;
+    monsters.push_back(slime);
+    monsters.push_back(goblin);
+
+    int gold = 0;
+
+    for(int i = 0; i < monsters.size(); i++)
     {
-        cout << "\n===== Status =====" << endl;
-        player.showStatus();
-        monster.showInfo();
+        cout << "\nA " << monsters[i].getName()
+             << " appears!" << endl;
 
-        cout << "\nChoose action:" << endl;
-        cout << "1. Normal Attack" << endl;
-        cout << "2. Use Skill" << endl;
-        cout << "3. Use Item" << endl;
-        cout << "Enter choice: ";
-
-        int choice;
-        cin >> choice;
-
-        if(choice == 1)
+        while(player.isAlive() && monsters[i].isAlive())
         {
-            int damage = player.attack();
-            monster.takeDamage(damage);
-        }
-        else if(choice == 2)
-        {
-            if(player.getMP() >= fireball.getMpCost())
+            cout << "\n===== Status =====" << endl;
+            player.showStatus();
+            monsters[i].showInfo();
+
+            cout << "\nChoose action:" << endl;
+            cout << "1. Normal Attack" << endl;
+            cout << "2. Fireball" << endl;
+            cout << "3. Heavy Strike" << endl;
+            cout << "4. Use Item" << endl;
+            cout << "Enter choice: ";
+
+            int choice;
+            cin >> choice;
+
+            if(choice == 1)
             {
-                fireball.use();
-                monster.takeDamage(fireball.getDamage());
-                player.useMP(fireball.getMpCost());
+                int damage = player.attack();
+                monsters[i].takeDamage(damage);
+            }
+            else if(choice == 2)
+            {
+                if(player.getMP() >= fireball.getMpCost())
+                {
+                    fireball.use();
+                    monsters[i].takeDamage(fireball.getDamage());
+                    player.useMP(fireball.getMpCost());
+                }
+                else
+                {
+                    cout << "Not enough MP." << endl;
+                }
+            }
+            else if(choice == 3)
+            {
+                if(player.getMP() >= heavyStrike.getMpCost())
+                {
+                    heavyStrike.use();
+                    monsters[i].takeDamage(heavyStrike.getDamage());
+                    player.useMP(heavyStrike.getMpCost());
+                }
+                else
+                {
+                    cout << "Not enough MP." << endl;
+                }
+            }
+            else if(choice == 4)
+            {
+                player.useItem();
             }
             else
             {
-                cout << "Not enough MP." << endl;
+                cout << "Invalid choice." << endl;
+            }
+
+            if(monsters[i].isAlive())
+            {
+                int damage = monsters[i].attack();
+                player.takeDamage(damage);
             }
         }
-        else if(choice == 3)
+
+        if(player.isAlive())
         {
-            player.useItem();
+            cout << "\nYou defeated "
+                 << monsters[i].getName()
+                 << "!" << endl;
+
+            gold += monsters[i].getRewardGold();
+
+            cout << "Gold +"
+                 << monsters[i].getRewardGold()
+                 << endl;
         }
         else
         {
-            cout << "Invalid choice." << endl;
-        }
-
-        if(monster.isAlive())
-        {
-            int damage = monster.attack();
-            player.takeDamage(damage);
+            cout << "\nGame over!" << endl;
+            return 0;
         }
     }
 
-    if(player.isAlive())
-    {
-        cout << "\nYou win!" << endl;
-        cout << "Reward gold: "
-             << monster.getRewardGold()
-             << endl;
-    }
-    else
-    {
-        cout << "\nGame over!" << endl;
+    cout << "\nYou win!" << endl;
+    cout << "Total gold: " << gold << endl;
+
+    return 0;
+}
     }
 
     return 0;
